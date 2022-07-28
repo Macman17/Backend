@@ -3,12 +3,18 @@ from itertools import product
 from flask import Flask, request, abort
 import json
 from config import db
+from flask_cors import CORS
 
 
 
 app = Flask('server')
+CORS(app) #disable CORS
 
-     
+#admin page
+@app.get("/api/admin")
+def  get_add():
+
+    return
 
 @app.get("/api/catalog")
 def get_catalog():
@@ -33,11 +39,8 @@ def save_product():
     if not "image" in product or len(product["image"]) < 1:
         return abort(400, "Image is required.")
 
-    if not "category" in product or len(product["category"]) < 1:
-        return abort(400, "Category is required.")   
-
-    if not type(product["category"]) not in [type(float),type(int)]:
-        return abort(400, "number is with category required.")                
+    if not "styleType" in product or len(product["category"]) < 1:
+        return abort(400, "Style type is required.")   
 
 
     print("Product saved!")
@@ -164,6 +167,6 @@ def save_coupon():
     coupon["_id"] = str(coupon["_id"])
     return json.dumps(coupon)
 
-    
+   
     
 app.run(debug=True)
