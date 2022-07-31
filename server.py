@@ -1,6 +1,6 @@
 from bson import ObjectId
 from itertools import product
-from flask import Flask, request, abort
+from flask import Flask, jsonify, request, abort
 import json
 from config import db
 from flask_cors import CORS
@@ -16,6 +16,78 @@ def  get_add():
 
     return
 
+@app.post("/api/user")
+def create_user():
+    cursor = db.user
+    id = cursor.insert_one({
+        'name': request.json['name'],
+        'email': request.json['email'],
+        'password': request.json['password'],
+        'country': request.json['country'],
+        'city': request.json['city'],
+        'zip': request.json['zip']
+    })
+    return 'User created'
+
+@app.get("/api/users")
+def get_users():
+    users = []
+
+    cursor = db.user.find({})
+
+    for user in cursor:
+        users.append({
+            '_id': str(ObjectId(user['_id'])),
+            'name': user['name'],
+            'email': user['email'],
+            'password': user['password'],
+            'country': user['country'],
+            'city': user['city'],
+            'zip': user['zip']
+        })
+
+    return json.dumps(users)
+
+@app.get('/api/user/<id>')
+def get_user(id):
+    user = []
+
+    user = db.user.find_one({'_id': ObjectId(id)})
+
+    return json.dumps({
+        'name': user['name'],
+        'email': user['email'],
+        'password': user['password'],
+        'country': user['country'],
+        'city': user['city'],
+        'zip': user['zip']
+    })
+
+@app.route('/api/user/<id>', methods=['DELETE'])
+def deleteUser(id):
+    db.user.delete_one({'_id': ObjectId(id)})
+    print(id)
+    return jsonify({'msg': 'User deleted'})
+
+@app.route('/api/users/<id>', methods=['PUT'])
+def updateUser(id):
+    print(id)
+    print(request.json)
+
+    cursor = db.user
+
+    cursor.update_one({'_id': ObjectId(id)}, {'$set': {
+    'name': cursor['name'],
+    'email': cursor['email'],
+    'password': cursor['password'],
+    'country': cursor['country'],
+    'city': cursor['city'],
+    'zip': cursor['zip']
+    }})
+
+    return json.dumps({'msg': 'UserUpdated'})
+
+
 @app.get("/api/catalog")
 def get_catalog():
     cursor = db.product.find({}) #get all
@@ -25,8 +97,8 @@ def get_catalog():
         prod["_id"] = str(prod["_id"])
         all_products.append(prod)
 
-    return json.dumps(all_products)  
-    
+    return json.dumps(all_products)
+
 @app.post("/api/catalog")
 def save_product():
     product = request.get_json()
@@ -40,7 +112,7 @@ def save_product():
         return abort(400, "Image is required.")
 
     if not "styleType" in product or len(product["category"]) < 1:
-        return abort(400, "Style type is required.")   
+        return abort(400, "Style type is required.")
 
 
     print("Product saved!")
@@ -53,7 +125,7 @@ def save_product():
 
 
 @app.route("/api/catalog/cheapest")
-def get_cheapest():    
+def get_cheapest():
     print("cheapest product")
 
     db_prod= db.products.find({})
@@ -63,11 +135,11 @@ def get_cheapest():
             solution = prod
 
 
-    solution["_id"] = str(solution["_id"])       
+    solution["_id"] = str(solution["_id"])
     return json.dumps(solution)
 
 @app.route("/api/catalog/total")
-def get_total(): 
+def get_total():
     print("total")
 
     db_prod= db.product.find({})
@@ -75,7 +147,7 @@ def get_total():
     for prod in db_prod:
         total += prod["unitPrice"]
 
-    return json.dumps(total) 
+    return json.dumps(total)
 
 #Product Section
 @app.route("/api/products/<id>")
@@ -83,11 +155,11 @@ def find_product(id):
     prod = db.product.find_one({"_id": ObjectId(id)})
 
 
-    
-    if not ObjectId.is_valid(id):
-        return abort(400, "ObjectId is not an ID.") 
 
-    prod["_id"] = str(prod["_id"]) 
+    if not ObjectId.is_valid(id):
+        return abort(400, "ObjectId is not an ID.")
+
+    prod["_id"] = str(prod["_id"])
 
     return json.dumps(prod)
 
@@ -95,15 +167,15 @@ def find_product(id):
 @app.route("/api/products/category")
 def get_catagories():
     cursor= db.product.find({})
-    catagories = []  
-    
+    catagories = []
+
 
     for prod in cursor:
         cat = prod["category"]
         if not cat in catagories:
             catagories.append(cat)
 
-    catagories["_id"] = str(catagories["_id"]) 
+    catagories["_id"] = str(catagories["_id"])
     return json.dumps(catagories)
 
 @app.route("/api/products/category/<cat_name>")
@@ -115,8 +187,8 @@ def get_title(cat_name):
     for prod in cursor:
         if prod["category"].lower() == cat_name.lower() :
             results.append(prod)
-    prod["_id"] = str(prod["_id"]) 
-    return json.dumps(results)    
+    prod["_id"] = str(prod["_id"])
+    return json.dumps(results)
 
 
 #Coupon Code Section
@@ -129,9 +201,9 @@ def get_coupon():
     results= []
 
     for coupon in cursor:
-        coupon["_id"] = str(coupon["_id"]) 
+        coupon["_id"] = str(coupon["_id"])
         results.append(coupon)
-        
+
     return json.dumps(results)
 
 #Valid Coupon codes
@@ -142,8 +214,8 @@ def get_by_code_coupon(code):
     if not coupon:
         return abort(400, "Invalid coupon code")
 
-    
-    code["_id"] = str(code["_id"]) 
+
+    code["_id"] = str(code["_id"])
     return json.dumps(coupon)
 
 #Post Coupon Code
@@ -153,13 +225,13 @@ def save_coupon():
 
     if not "code" in coupon or len(coupon["code"]) < 5:
         return abort(400, "Code is required and should contains at least 5 chars.")
-    
+
     if not "discount" in coupon:
         return abort(400, "Discount is required.")
 
     if type(coupon["discount"]) != int and type(coupon["discount"]) != float:
         return abort(400, "Discount is required and should a valid number.")
-        
+
     if coupon["discount"] < 0 or coupon["discount"] > 31:
         return abort(400, "Discount should be lower than 31.")
 
@@ -167,6 +239,6 @@ def save_coupon():
     coupon["_id"] = str(coupon["_id"])
     return json.dumps(coupon)
 
-   
-    
+
+
 app.run(debug=True)
