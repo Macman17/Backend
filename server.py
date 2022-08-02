@@ -1,7 +1,11 @@
+
+from re import L
+from unittest import result
 from bson import ObjectId
 from itertools import product
-from flask import Flask, request, abort
+from flask import Flask, render_template, request, abort, session
 import json
+
 from config import db
 from flask_cors import CORS
 
@@ -9,6 +13,96 @@ from flask_cors import CORS
 
 app = Flask('server')
 CORS(app) #disable CORS
+
+@app.get('/')
+def index():
+    if 'username' in session:
+        return 'You are logged in as' + session['username']
+    return render_template('ClothingRoutes.jsx')    
+
+@app.get('/login')
+def login():
+    return ''
+
+    
+#USER INFO CRUD
+# USER Create
+@app.post("/api/user")
+def create_user():
+    cursor = db.user
+    id = cursor.insert_one({
+        'name': request.json['name'],
+        'email': request.json['email'],
+        'password': request.json['password'],
+        'country': request.json['country'],
+        'city': request.json['city'],
+        'zip': request.json['zip']
+    })
+    return 'User created'
+
+#USER READ
+@app.get("/api/users")
+def get_users():
+    users = []
+
+    cursor = db.user.find({})
+    
+    for user in cursor:
+        users.append({
+            '_id': str(ObjectId(user['_id'])),
+            'name': user['name'],
+            'email': user['email'],
+            'password': user['password'],
+            'country': user['country'],
+            'city': user['city'],
+            'zip': user['zip']
+        })
+
+    return json.dumps(users)
+
+@app.get('/api/user/<id>')
+def get_user(id):
+    user = []
+
+    user = db.user.find_one({'_id': ObjectId(id)})
+
+    return json.dumps({
+        'name': user['name'],
+        'email': user['email'],
+        'password': user['password'],
+        'country': user['country'],
+        'city': user['city'],
+        'zip': user['zip']
+    })
+
+#USER DELETE
+@app.route('/api/user/<id>', methods=['DELETE'])
+def delete_User(id):
+    db.user.delete_one({'_id': ObjectId(id)})
+    print(id)
+    return json.dumps({'msg': 'User deleted'})
+
+#USER UPDATE
+@app.route('/api/users/<id>', methods=['PUT'])
+def update_User(id):
+    print(id)
+    print(request.json)
+
+    cursor = db.user
+
+    cursor.update_one({'_id': ObjectId(id)}, {'$set': {
+    'name': cursor['name'],
+    'email': cursor['email'],
+    'password': cursor['password'],
+    'country': cursor['country'],
+    'city': cursor['city'],
+    'zip': cursor['zip']
+    }})
+
+    return json.dumps({'msg': 'UserUpdated'})
+
+
+
 
 #admin page
 @app.get("/api/admin")
@@ -27,39 +121,15 @@ def get_catalog():
 
     return json.dumps(all_products)  
     
-@app.post("/api/catalog")
-def save_product():
-    product = request.get_json()
-    db.product.insert_one(product)
-
-    if not "title" in product or len(product["title"]) < 5:
-        return abort(400, "Title should contains at least 5 chars.")
-
-
-    if not "image" in product or len(product["image"]) < 1:
-        return abort(400, "Image is required.")
-
-    if not "styleType" in product or len(product["category"]) < 1:
-        return abort(400, "Style type is required.")   
-
-
-    print("Product saved!")
-    print(product)
-
-    #fix the id issue
-    product["_id"] = str(product["_id"])
-
-    return json.dumps(product) # crash
-
 
 @app.route("/api/catalog/cheapest")
 def get_cheapest():    
     print("cheapest product")
 
-    db_prod= db.products.find({})
+    db_prod= db.product.find({})
     solution= db_prod[0]
     for prod in db_prod:
-        if prod["unitPrice"] < solution["unitPrice"]:
+        if prod["price"] < solution["price"]:
             solution = prod
 
 
@@ -73,11 +143,37 @@ def get_total():
     db_prod= db.product.find({})
     total = 0
     for prod in db_prod:
-        total += prod["unitPrice"]
+        total += prod["price"]
 
     return json.dumps(total) 
 
 #Product Section
+#Product Create
+@app.post("/api/catalog")
+def save_product():
+    product = request.get_json()
+    db.product.insert_one(product)
+
+    if not "title" in product or len(product["title"]) < 5:
+        return abort(400, "Title should contains at least 5 chars.")
+
+
+    if not "image" in product or len(product["image"]) < 1:
+        return abort(400, "Image is required.")
+
+    if not "styleType" in product or len(product["styleType"]) < 1:
+        return abort(400, "Style type is required.")   
+
+
+    print("Product saved!")
+    print(product)
+
+    #fix the id issue
+    product["_id"] = str(product["_id"])
+
+    return json.dumps(product) # crash
+
+#Product Read
 @app.route("/api/products/<id>")
 def find_product(id):
     prod = db.product.find_one({"_id": ObjectId(id)})
@@ -92,31 +188,59 @@ def find_product(id):
     return json.dumps(prod)
 
 
-@app.route("/api/products/category")
+@app.route("/api/product/styletype")
 def get_catagories():
     cursor= db.product.find({})
     catagories = []  
     
 
     for prod in cursor:
-        cat = prod["category"]
+        cat = prod["styleType"]
         if not cat in catagories:
             catagories.append(cat)
 
     catagories["_id"] = str(catagories["_id"]) 
     return json.dumps(catagories)
 
-@app.route("/api/products/category/<cat_name>")
+@app.route("/api/product/styletype/<cat_name>")
 
 def get_title(cat_name):
-    cursor= db.product.find({"category": cat_name})
+    cursor= db.product.find({"styleType": cat_name})
     results = []
 
     for prod in cursor:
-        if prod["category"].lower() == cat_name.lower() :
+        if prod["styleType"].lower() == cat_name.lower() :
             results.append(prod)
     prod["_id"] = str(prod["_id"]) 
     return json.dumps(results)    
+
+#update product
+@app.put("/api/product/<id>")
+def update_product(id):
+    print(id)
+    print(request.json)
+    cursor = db.product
+    
+    cursor.update_one({'_id': ObjectId(id)}, {'$set': {
+    'title': cursor['title'],
+    'stock': cursor['stock'],
+    'price': cursor['price'],
+    'image': cursor['image'],
+    'styleType': cursor['styleType'],
+    'gender': cursor['gender']
+    }})
+
+    cursor["_id"] = str(cursor["_id"])
+
+    return json.dumps({'msg': 'UserUpdated'})
+
+#Delete Product
+@app.route('/api/product/<id>', methods=['DELETE'])
+def delete_product(id):
+    db.product.delete_one({'_id': ObjectId(id)})
+    print(id)
+    
+    return json.dumps({'msg': 'User deleted'})
 
 
 #Coupon Code Section
@@ -168,5 +292,5 @@ def save_coupon():
     return json.dumps(coupon)
 
    
-    
-app.run(debug=True)
+if __name__ == '__main__':  
+    app.run(debug=True)
