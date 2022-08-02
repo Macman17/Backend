@@ -15,7 +15,8 @@ CORS(app) #disable CORS
 def  get_add():
 
     return
-
+#USER INFO CRUD
+# USER Create
 @app.post("/api/user")
 def create_user():
     cursor = db.user
@@ -29,6 +30,7 @@ def create_user():
     })
     return 'User created'
 
+#USER READ
 @app.get("/api/users")
 def get_users():
     users = []
@@ -63,12 +65,14 @@ def get_user(id):
         'zip': user['zip']
     })
 
+#USER DELETE
 @app.route('/api/user/<id>', methods=['DELETE'])
 def deleteUser(id):
     db.user.delete_one({'_id': ObjectId(id)})
     print(id)
     return jsonify({'msg': 'User deleted'})
 
+#USER UPDATE
 @app.route('/api/users/<id>', methods=['PUT'])
 def updateUser(id):
     print(id)
