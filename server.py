@@ -267,16 +267,20 @@ def get_coupon():
     return json.dumps(results)
 
 #Valid Coupon codes
-@app.get("/api/couponCode/<code>")
-def get_by_code_coupon(code):
+@app.get("/api/couponCode/<id>")
+def get_user_by_id(id):
+    print(f'id code is {id}')
 
-    coupon = db.couponCode.find_one({"code": code})
-    if not coupon:
-        return abort(400, "Invalid coupon code")
+    coupon = db.couponCode.find_one({"_id": ObjectId(id)})
+    print(f'coupon: {coupon}')
 
+    # if not coupon:
+    #     return abort(400, "Invalid coupon code")
 
-    code["_id"] = str(code["_id"])
-    return json.dumps(coupon)
+    return json.dumps({
+        'code': coupon['code'],
+        'discount': coupon['discount']
+    })
 
 #Post Coupon Code
 @app.post("/api/couponCode")
