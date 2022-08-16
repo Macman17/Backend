@@ -27,7 +27,7 @@ def create_user():
         'city': request.json['city'],
         'zip': request.json['zip']
     })
-    return 'User created'
+    return jsonify(str(id.inserted_id))
 
 @app.get("/api/users")
 def get_users():
@@ -46,13 +46,28 @@ def get_users():
             'zip': user['zip']
         })
 
-    return json.dumps(users)
+    # return users
+    # return json.dumps(users)
+    return jsonify(users)
+
 
 @app.get('/api/user/<id>')
 def get_user(id):
     user = []
 
     user = db.user.find_one({'_id': ObjectId(id)})
+
+    # for user in cursor:
+    #     users.append({
+    #         '_id': str(ObjectId(user['_id'])),
+    #         'name': user['name'],
+    #         'email': user['email'],
+    #         'password': user['password'],
+    #         'country': user['country'],
+    #         'city': user['city'],
+    #         'zip': user['zip']
+    #     })
+    # print(".... ",users)
 
     return json.dumps({
         'name': user['name'],
@@ -63,26 +78,67 @@ def get_user(id):
         'zip': user['zip']
     })
 
+
+@app.post('/api/login')
+def login():
+    credentials = request.get_json()
+
+    name = credentials['name']
+    password = credentials['password']
+
+    users = []
+    user_founded = ''
+    cursor = db.user.find({})
+    for user in cursor:
+        users.append({
+            '_id': str(ObjectId(user['_id'])),
+            'name': user['name'],
+            'email': user['email'],
+            'password': user['password'],
+            'country': user['country'],
+            'city': user['city'],
+            'zip': user['zip']
+        })
+
+    response = False
+    for user in users:
+        if name in user['name']:
+
+            if password == user["password"]:
+                print('** SAME PASSWORD*')
+                user_founded = user
+                response = True
+                break
+            else:
+                print('** PASSWORD WRONG')
+            break
+
+    if response is not False:
+        return jsonify(user_founded), 200
+    else:
+        return "User not found"
+
+
 @app.route('/api/user/<id>', methods=['DELETE'])
 def deleteUser(id):
     db.user.delete_one({'_id': ObjectId(id)})
     print(id)
     return jsonify({'msg': 'User deleted'})
 
-@app.route('/api/users/<id>', methods=['PUT'])
+@app.route('/api/user/<id>', methods=['PUT'])
 def updateUser(id):
-    print(id)
-    print(request.json)
+    print(f'id: {id}')
+    print(f'request.json {request.json}')
 
     cursor = db.user
 
     cursor.update_one({'_id': ObjectId(id)}, {'$set': {
-    'name': cursor['name'],
-    'email': cursor['email'],
-    'password': cursor['password'],
-    'country': cursor['country'],
-    'city': cursor['city'],
-    'zip': cursor['zip']
+    'name': request.json['name'],
+    'email': request.json['email'],
+    'password': request.json['password'],
+    'country': request.json['country'],
+    'city': request.json['city'],
+    'zip': request.json['zip']
     }})
 
     return json.dumps({'msg': 'UserUpdated'})
@@ -240,5 +296,5 @@ def save_coupon():
     return json.dumps(coupon)
 
 
-
-app.run(debug=True)
+if __name__ == '__main__':
+    app.run(debug=True)
