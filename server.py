@@ -1,5 +1,4 @@
 
-from re import L
 from unittest import result
 from bson import ObjectId
 from itertools import product
@@ -29,16 +28,38 @@ def login():
 # USER Create
 @app.post("/api/user")
 def create_user():
-    cursor = db.user
-    id = cursor.insert_one({
-        'name': request.json['name'],
-        'email': request.json['email'],
-        'password': request.json['password'],
-        'country': request.json['country'],
-        'city': request.json['city'],
-        'zip': request.json['zip']
-    })
-    return 'User created'
+    product = request.get_json()
+    
+    db.user.insert_one(product)
+
+    if not "name" in product or len(product["name"]) < 2:
+        return abort(400, "You must enter your name!")
+
+    if not "email" in product:
+        return abort(400, "Email address is required.")    
+
+    if not "zip" in product or len(product["zip"]) < 5:
+        return abort(400, "Zip code requires at least 5 chars.")      
+
+    if not type(product["zip"]) != float and type(product["zip"]) != int:
+        return abort(400, "Must be a valid number.")
+
+    if product["zip"] == 0:
+        return abort(400, "Must be higher than 0.")
+
+    if not "country" in product or len(product["country"]) < 2:
+        return abort(400, "Country is required.")
+
+    if not "city" in product or len(product["city"]) < 2:
+        return abort(400, "City is required.")   
+
+    if not "password" in product or len(product["password"]) < 4:
+        return abort(400, "Password is required.")  
+
+    if not type(product["password"]) not in [type(float),type(int)]:
+        return abort(400, "You must have at least 1 number in password.")
+
+    return json.dumps(id)
 
 #USER READ
 @app.get("/api/users")
@@ -99,6 +120,33 @@ def update_User(id):
     'zip': cursor['zip']
     }})
 
+    if not "name" in cursor or len(cursor["name"]) < 2:
+        return abort(400, "You must enter your name!")
+
+    if not "email" in cursor:
+        return abort(400, "Email address is required.")    
+
+    if not "zip" in cursor or len(cursor["zip"]) < 5:
+        return abort(400, "Zip code requires at least 5 chars.")      
+
+    if not type(cursor["zip"]) != float and type(cursor["zip"]) != int:
+        return abort(400, "Must be a valid number.")
+
+    if cursor["zip"] <= 0:
+        return abort(400, "Must be higher than 0.")
+
+    if not "country" in cursor or len(cursor["country"]) < 2:
+        return abort(400, "Country is required.")
+
+    if not "city" in cursor or len(cursor["city"]) < 2:
+        return abort(400, "City is required.")   
+
+    if not "password" in cursor or len(cursor["password"]) < 4:
+        return abort(400, "Password is required.")  
+
+    if not type(cursor["password"]) not in [type(float),type(int)]:
+        return abort(400, "You must have at least 1 number in password.")      
+
     return json.dumps({'msg': 'UserUpdated'})
 
 
@@ -151,27 +199,39 @@ def get_total():
 #Product Create
 @app.post("/api/catalog")
 def save_product():
-    product = request.get_json()
-    db.product.insert_one(product)
+    cursor = db.product
+    
+    id = cursor.insert_one({'_id': ObjectId(id)}, {'$set': {
+    'title': cursor['title'],
+    'price': cursor['price'],
+    'image': cursor['image'],
+    'styleType': cursor['styleType'],
+    'gender': cursor['gender']
+    }})
 
-    if not "title" in product or len(product["title"]) < 5:
+    if not "title" in cursor or len(cursor["title"]) < 5:
         return abort(400, "Title should contains at least 5 chars.")
 
+    if not "price" in cursor:
+        return abort(400, "Price is required.")    
 
-    if not "image" in product or len(product["image"]) < 1:
+    if not type(cursor["price"]) != float and type(cursor["price"]) != int:
+        return abort(400, "Must be a valid number.")
+
+    if cursor["price"] <= 0:
+        return abort(400, "Must be higher than 0.")
+
+    if not "image" in cursor or len(cursor["image"]) < 1:
         return abort(400, "Image is required.")
 
-    if not "styleType" in product or len(product["styleType"]) < 1:
-        return abort(400, "Style type is required.")   
+    if not "styleType" in cursor or len(cursor["styleType"]) < 1:
+        return abort(400, "Style Type is required.")   
 
+    if not "gender" in cursor or len(cursor["gender"]) < 1:
+        return abort(400, "Gender is required.")               
 
-    print("Product saved!")
-    print(product)
-
-    #fix the id issue
-    product["_id"] = str(product["_id"])
-
-    return json.dumps(product) # crash
+    
+    return json.dumps(id) 
 
 #Product Read
 @app.route("/api/products/<id>")
@@ -185,7 +245,13 @@ def find_product(id):
 
     prod["_id"] = str(prod["_id"]) 
 
-    return json.dumps(prod)
+    return json.dumps({
+        'title': prod['title'],
+        'price': prod['price'],
+        'image': prod['image'],
+        'styleType': prod['styleType'],
+        'gender': prod['gender']
+        })
 
 
 @app.route("/api/product/styletype")
@@ -223,14 +289,34 @@ def update_product(id):
     
     cursor.update_one({'_id': ObjectId(id)}, {'$set': {
     'title': cursor['title'],
-    'stock': cursor['stock'],
     'price': cursor['price'],
     'image': cursor['image'],
     'styleType': cursor['styleType'],
     'gender': cursor['gender']
     }})
 
-    cursor["_id"] = str(cursor["_id"])
+    if not "title" in cursor or len(cursor["title"]) < 5:
+        return abort(400, "Title should contains at least 5 chars.")
+
+    if not "price" in cursor:
+        return abort(400, "Price is required.")    
+
+    if not type(cursor["price"]) != float and type(cursor["price"]) != int:
+        return abort(400, "Must be a valid number.")
+
+    if cursor["price"] <= 0:
+        return abort(400, "Must be higher than 0.")
+
+    if not "image" in cursor or len(cursor["image"]) < 1:
+        return abort(400, "Image is required.")
+
+    if not "styleType" in cursor or len(cursor["styleType"]) < 1:
+        return abort(400, "Style Type is required.")   
+
+    if not "gender" in cursor or len(cursor["gender"]) < 1:
+        return abort(400, "Gender is required.")   
+
+    
 
     return json.dumps({'msg': 'UserUpdated'})
 
@@ -291,6 +377,25 @@ def save_coupon():
     coupon["_id"] = str(coupon["_id"])
     return json.dumps(coupon)
 
+#Update Coupon
+
+@app.put("/api/couponCode/<id>")
+def update_product(id):
+    print(id)
+    print(request.json)
+    cursor = db.couponCode
+    
+    cursor.update_one({'_id': ObjectId(id)}, {'$set': {
+    'code': cursor['code'],
+    'discount': cursor['discount']
+    }})
+
+#Delete Coupon
+@app.route('/api/couponCode/<id>', methods=['DELETE'])
+def delete_User(id):
+    db.couponCode.delete_one({'_id': ObjectId(id)})
+    print(id)
+    return json.dumps({'msg': 'Coupon deleted'})
    
 if __name__ == '__main__':  
     app.run(debug=True)
