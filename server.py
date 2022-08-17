@@ -19,9 +19,71 @@ def index():
         return 'You are logged in as' + session['username']
     return render_template('ClothingRoutes.jsx')    
 
-@app.get('/login')
+
+@app.get('/api/user/<id>')
+def get_user(id):
+    user = []
+
+    user = db.user.find_one({'_id': ObjectId(id)})
+
+    # for user in cursor:
+    #     users.append({
+    #         '_id': str(ObjectId(user['_id'])),
+    #         'name': user['name'],
+    #         'email': user['email'],
+    #         'password': user['password'],
+    #         'country': user['country'],
+    #         'city': user['city'],
+    #         'zip': user['zip']
+    #     })
+    # print(".... ",users)
+
+    return json.dumps({
+        'name': user['name'],
+        'email': user['email'],
+        'password': user['password'],
+        'country': user['country'],
+        'city': user['city'],
+        'zip': user['zip']
+    })
+@app.post('/api/login')
 def login():
-    return ''
+    credentials = request.get_json()
+
+    name = credentials['name']
+    password = credentials['password']
+
+    users = []
+    user_founded = ''
+    cursor = db.user.find({})
+    for user in cursor:
+        users.append({
+            '_id': str(ObjectId(user['_id'])),
+            'name': user['name'],
+            'email': user['email'],
+            'password': user['password'],
+            'country': user['country'],
+            'city': user['city'],
+            'zip': user['zip']
+        })
+
+    response = False
+    for user in users:
+        if name in user['name']:
+
+            if password == user["password"]:
+                print('** SAME PASSWORD*')
+                user_founded = user
+                response = True
+                break
+            else:
+                print('** PASSWORD WRONG')
+            break
+
+    if response is not False:
+        return jsonify(user_founded), 200
+    else:
+        return "User not found"
 
     
 #USER INFO CRUD
@@ -81,20 +143,7 @@ def get_users():
 
     return json.dumps(users)
 
-@app.get('/api/user/<id>')
-def get_user(id):
-    user = []
 
-    user = db.user.find_one({'_id': ObjectId(id)})
-
-    return json.dumps({
-        'name': user['name'],
-        'email': user['email'],
-        'password': user['password'],
-        'country': user['country'],
-        'city': user['city'],
-        'zip': user['zip']
-    })
 
 #USER DELETE
 @app.route('/api/user/<id>', methods=['DELETE'])
@@ -157,109 +206,10 @@ def update_User(id):
 def  get_add():
 
     return
-#USER INFO CRUD
-# USER Create
-@app.post("/api/user")
-def create_user():
-    cursor = db.user
-    id = cursor.insert_one({
-        'name': request.json['name'],
-        'email': request.json['email'],
-        'password': request.json['password'],
-        'country': request.json['country'],
-        'city': request.json['city'],
-        'zip': request.json['zip']
-    })
-    return jsonify(str(id.inserted_id))
-
-#USER READ
-@app.get("/api/users")
-def get_users():
-    users = []
-
-    cursor = db.user.find({})
-
-    for user in cursor:
-        users.append({
-            '_id': str(ObjectId(user['_id'])),
-            'name': user['name'],
-            'email': user['email'],
-            'password': user['password'],
-            'country': user['country'],
-            'city': user['city'],
-            'zip': user['zip']
-        })
-
-    # return users
-    # return json.dumps(users)
-    return jsonify(users)
 
 
-@app.get('/api/user/<id>')
-def get_user(id):
-    user = []
 
-    user = db.user.find_one({'_id': ObjectId(id)})
 
-    # for user in cursor:
-    #     users.append({
-    #         '_id': str(ObjectId(user['_id'])),
-    #         'name': user['name'],
-    #         'email': user['email'],
-    #         'password': user['password'],
-    #         'country': user['country'],
-    #         'city': user['city'],
-    #         'zip': user['zip']
-    #     })
-    # print(".... ",users)
-
-    return json.dumps({
-        'name': user['name'],
-        'email': user['email'],
-        'password': user['password'],
-        'country': user['country'],
-        'city': user['city'],
-        'zip': user['zip']
-    })
-
-@app.post('/api/login')
-def login():
-    credentials = request.get_json()
-
-    name = credentials['name']
-    password = credentials['password']
-
-    users = []
-    user_founded = ''
-    cursor = db.user.find({})
-    for user in cursor:
-        users.append({
-            '_id': str(ObjectId(user['_id'])),
-            'name': user['name'],
-            'email': user['email'],
-            'password': user['password'],
-            'country': user['country'],
-            'city': user['city'],
-            'zip': user['zip']
-        })
-
-    response = False
-    for user in users:
-        if name in user['name']:
-
-            if password == user["password"]:
-                print('** SAME PASSWORD*')
-                user_founded = user
-                response = True
-                break
-            else:
-                print('** PASSWORD WRONG')
-            break
-
-    if response is not False:
-        return jsonify(user_founded), 200
-    else:
-        return "User not found"
 
 
 #USER DELETE
@@ -516,7 +466,7 @@ def save_coupon():
 #Update Coupon
 
 @app.put("/api/couponCode/<id>")
-def update_product(id):
+def update_coupon(id):
     print(id)
     print(request.json)
     cursor = db.couponCode
@@ -528,7 +478,7 @@ def update_product(id):
 
 #Delete Coupon
 @app.route('/api/couponCode/<id>', methods=['DELETE'])
-def delete_User(id):
+def delete_coupon(id):
     db.couponCode.delete_one({'_id': ObjectId(id)})
     print(id)
     return json.dumps({'msg': 'Coupon deleted'})
