@@ -26,7 +26,8 @@ def create_user():
         'password': request.json['password'],
         'country': request.json['country'],
         'city': request.json['city'],
-        'zip': request.json['zip']
+        'zip': request.json['zip'],
+        # 'status': 'Active'
     })
     return jsonify(str(id.inserted_id))
 
@@ -45,7 +46,8 @@ def get_users():
             'password': user['password'],
             'country': user['country'],
             'city': user['city'],
-            'zip': user['zip']
+            'zip': user['zip'],
+            # 'status': user['status']
         })
 
     # return users
