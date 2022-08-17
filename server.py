@@ -2,7 +2,7 @@
 from unittest import result
 from bson import ObjectId
 from itertools import product
-from flask import Flask, render_template, request, abort, session
+from flask import Flask, render_template, request, abort, session, jsonify
 import json
 
 from config import db
@@ -157,6 +157,138 @@ def update_User(id):
 def  get_add():
 
     return
+#USER INFO CRUD
+# USER Create
+@app.post("/api/user")
+def create_user():
+    cursor = db.user
+    id = cursor.insert_one({
+        'name': request.json['name'],
+        'email': request.json['email'],
+        'password': request.json['password'],
+        'country': request.json['country'],
+        'city': request.json['city'],
+        'zip': request.json['zip']
+    })
+    return jsonify(str(id.inserted_id))
+
+#USER READ
+@app.get("/api/users")
+def get_users():
+    users = []
+
+    cursor = db.user.find({})
+
+    for user in cursor:
+        users.append({
+            '_id': str(ObjectId(user['_id'])),
+            'name': user['name'],
+            'email': user['email'],
+            'password': user['password'],
+            'country': user['country'],
+            'city': user['city'],
+            'zip': user['zip']
+        })
+
+    # return users
+    # return json.dumps(users)
+    return jsonify(users)
+
+
+@app.get('/api/user/<id>')
+def get_user(id):
+    user = []
+
+    user = db.user.find_one({'_id': ObjectId(id)})
+
+    # for user in cursor:
+    #     users.append({
+    #         '_id': str(ObjectId(user['_id'])),
+    #         'name': user['name'],
+    #         'email': user['email'],
+    #         'password': user['password'],
+    #         'country': user['country'],
+    #         'city': user['city'],
+    #         'zip': user['zip']
+    #     })
+    # print(".... ",users)
+
+    return json.dumps({
+        'name': user['name'],
+        'email': user['email'],
+        'password': user['password'],
+        'country': user['country'],
+        'city': user['city'],
+        'zip': user['zip']
+    })
+
+@app.post('/api/login')
+def login():
+    credentials = request.get_json()
+
+    name = credentials['name']
+    password = credentials['password']
+
+    users = []
+    user_founded = ''
+    cursor = db.user.find({})
+    for user in cursor:
+        users.append({
+            '_id': str(ObjectId(user['_id'])),
+            'name': user['name'],
+            'email': user['email'],
+            'password': user['password'],
+            'country': user['country'],
+            'city': user['city'],
+            'zip': user['zip']
+        })
+
+    response = False
+    for user in users:
+        if name in user['name']:
+
+            if password == user["password"]:
+                print('** SAME PASSWORD*')
+                user_founded = user
+                response = True
+                break
+            else:
+                print('** PASSWORD WRONG')
+            break
+
+    if response is not False:
+        return jsonify(user_founded), 200
+    else:
+        return "User not found"
+
+
+#USER DELETE
+@app.route('/api/user/<id>', methods=['DELETE'])
+def deleteUser(id):
+    db.user.delete_one({'_id': ObjectId(id)})
+    print(id)
+    return jsonify({'msg': 'User deleted'})
+
+@app.route('/api/user/<id>', methods=['PUT'])
+#USER UPDATE
+
+def updateUser(id):
+    print(f'id: {id}')
+    print(f'request.json {request.json}')
+
+    cursor = db.user
+
+    cursor.update_one({'_id': ObjectId(id)}, {'$set': {
+    'name': request.json['name'],
+    'email': request.json['email'],
+    'password': request.json['password'],
+    'country': request.json['country'],
+    'city': request.json['city'],
+    'zip': request.json['zip']
+    }})
+
+    return json.dumps({'msg': 'UserUpdated'})
+
 
 @app.get("/api/catalog")
 def get_catalog():
@@ -171,7 +303,7 @@ def get_catalog():
     
 
 @app.route("/api/catalog/cheapest")
-def get_cheapest():    
+def get_cheapest():
     print("cheapest product")
 
     db_prod= db.product.find({})
@@ -181,11 +313,11 @@ def get_cheapest():
             solution = prod
 
 
-    solution["_id"] = str(solution["_id"])       
+    solution["_id"] = str(solution["_id"])
     return json.dumps(solution)
 
 @app.route("/api/catalog/total")
-def get_total(): 
+def get_total():
     print("total")
 
     db_prod= db.product.find({})
@@ -193,7 +325,7 @@ def get_total():
     for prod in db_prod:
         total += prod["price"]
 
-    return json.dumps(total) 
+    return json.dumps(total)
 
 #Product Section
 #Product Create
@@ -239,11 +371,11 @@ def find_product(id):
     prod = db.product.find_one({"_id": ObjectId(id)})
 
 
-    
-    if not ObjectId.is_valid(id):
-        return abort(400, "ObjectId is not an ID.") 
 
-    prod["_id"] = str(prod["_id"]) 
+    if not ObjectId.is_valid(id):
+        return abort(400, "ObjectId is not an ID.")
+
+    prod["_id"] = str(prod["_id"])
 
     return json.dumps({
         'title': prod['title'],
@@ -257,15 +389,15 @@ def find_product(id):
 @app.route("/api/product/styletype")
 def get_catagories():
     cursor= db.product.find({})
-    catagories = []  
-    
+    catagories = []
+
 
     for prod in cursor:
         cat = prod["styleType"]
         if not cat in catagories:
             catagories.append(cat)
 
-    catagories["_id"] = str(catagories["_id"]) 
+    catagories["_id"] = str(catagories["_id"])
     return json.dumps(catagories)
 
 @app.route("/api/product/styletype/<cat_name>")
@@ -277,8 +409,8 @@ def get_title(cat_name):
     for prod in cursor:
         if prod["styleType"].lower() == cat_name.lower() :
             results.append(prod)
-    prod["_id"] = str(prod["_id"]) 
-    return json.dumps(results)    
+    prod["_id"] = str(prod["_id"])
+    return json.dumps(results)
 
 #update product
 @app.put("/api/product/<id>")
@@ -339,22 +471,26 @@ def get_coupon():
     results= []
 
     for coupon in cursor:
-        coupon["_id"] = str(coupon["_id"]) 
+        coupon["_id"] = str(coupon["_id"])
         results.append(coupon)
-        
+
     return json.dumps(results)
 
 #Valid Coupon codes
-@app.get("/api/couponCode/<code>")
-def get_by_code_coupon(code):
+@app.get("/api/couponCode/<id>")
+def get_user_by_id(id):
+    print(f'id code is {id}')
 
-    coupon = db.couponCode.find_one({"code": code})
-    if not coupon:
-        return abort(400, "Invalid coupon code")
+    coupon = db.couponCode.find_one({"_id": ObjectId(id)})
+    print(f'coupon: {coupon}')
 
-    
-    code["_id"] = str(code["_id"]) 
-    return json.dumps(coupon)
+    # if not coupon:
+    #     return abort(400, "Invalid coupon code")
+
+    return json.dumps({
+        'code': coupon['code'],
+        'discount': coupon['discount']
+    })
 
 #Post Coupon Code
 @app.post("/api/couponCode")
@@ -363,13 +499,13 @@ def save_coupon():
 
     if not "code" in coupon or len(coupon["code"]) < 5:
         return abort(400, "Code is required and should contains at least 5 chars.")
-    
+
     if not "discount" in coupon:
         return abort(400, "Discount is required.")
 
     if type(coupon["discount"]) != int and type(coupon["discount"]) != float:
         return abort(400, "Discount is required and should a valid number.")
-        
+
     if coupon["discount"] < 0 or coupon["discount"] > 31:
         return abort(400, "Discount should be lower than 31.")
 
@@ -397,5 +533,7 @@ def delete_User(id):
     print(id)
     return json.dumps({'msg': 'Coupon deleted'})
    
-if __name__ == '__main__':  
+
+
+if __name__ == '__main__':
     app.run(debug=True)
