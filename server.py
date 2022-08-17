@@ -122,60 +122,60 @@ def login():
 
 #USER INFO CRUD
 # USER Create
-@app.post("/api/user")
-def create_user():
-    product = request.get_json()
+# @app.post("/api/user")
+# def create_user():
+#     product = request.get_json()
 
-    db.user.insert_one(product)
+#     db.user.insert_one(product)
 
-    if not "name" in product or len(product["name"]) < 2:
-        return abort(400, "You must enter your name!")
+#     if not "name" in product or len(product["name"]) < 2:
+#         return abort(400, "You must enter your name!")
 
-    if not "email" in product:
-        return abort(400, "Email address is required.")
+#     if not "email" in product:
+#         return abort(400, "Email address is required.")
 
-    if not "zip" in product or len(product["zip"]) < 5:
-        return abort(400, "Zip code requires at least 5 chars.")
+#     if not "zip" in product or len(product["zip"]) < 5:
+#         return abort(400, "Zip code requires at least 5 chars.")
 
-    if not type(product["zip"]) != float and type(product["zip"]) != int:
-        return abort(400, "Must be a valid number.")
+#     if not type(product["zip"]) != float and type(product["zip"]) != int:
+#         return abort(400, "Must be a valid number.")
 
-    if product["zip"] == 0:
-        return abort(400, "Must be higher than 0.")
+#     if product["zip"] == 0:
+#         return abort(400, "Must be higher than 0.")
 
-    if not "country" in product or len(product["country"]) < 2:
-        return abort(400, "Country is required.")
+#     if not "country" in product or len(product["country"]) < 2:
+#         return abort(400, "Country is required.")
 
-    if not "city" in product or len(product["city"]) < 2:
-        return abort(400, "City is required.")
+#     if not "city" in product or len(product["city"]) < 2:
+#         return abort(400, "City is required.")
 
-    if not "password" in product or len(product["password"]) < 4:
-        return abort(400, "Password is required.")
+#     if not "password" in product or len(product["password"]) < 4:
+#         return abort(400, "Password is required.")
 
-    if not type(product["password"]) not in [type(float),type(int)]:
-        return abort(400, "You must have at least 1 number in password.")
+#     if not type(product["password"]) not in [type(float),type(int)]:
+#         return abort(400, "You must have at least 1 number in password.")
 
-    return json.dumps(id)
+#     return json.dumps(id)
 
 #USER READ
-@app.get("/api/users")
-def get_users():
-    users = []
+# @app.get("/api/users")
+# def get_users():
+#     users = []
 
-    cursor = db.user.find({})
+#     cursor = db.user.find({})
 
-    for user in cursor:
-        users.append({
-            '_id': str(ObjectId(user['_id'])),
-            'name': user['name'],
-            'email': user['email'],
-            'password': user['password'],
-            'country': user['country'],
-            'city': user['city'],
-            'zip': user['zip']
-        })
+#     for user in cursor:
+#         users.append({
+#             '_id': str(ObjectId(user['_id'])),
+#             'name': user['name'],
+#             'email': user['email'],
+#             'password': user['password'],
+#             'country': user['country'],
+#             'city': user['city'],
+#             'zip': user['zip']
+#         })
 
-    return json.dumps(users)
+#     return json.dumps(users)
 
 
 
@@ -236,10 +236,10 @@ def update_User(id):
 
 
 #admin page
-@app.get("/api/admin")
-def  get_add():
+# @app.get("/api/admin")
+# def  get_add():
 
-    return
+#     return
 
 
 
