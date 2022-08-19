@@ -80,6 +80,7 @@ def get_user(id):
         'city': user['city'],
         'zip': user['zip']
     })
+
 @app.post('/api/login')
 def login():
     credentials = request.get_json()
@@ -365,20 +366,21 @@ def save_product():
 def find_product(id):
     prod = db.product.find_one({"_id": ObjectId(id)})
 
-
-
     if not ObjectId.is_valid(id):
         return abort(400, "ObjectId is not an ID.")
 
-    prod["_id"] = str(prod["_id"])
+    # prod["_id"] = str(prod["_id"])
 
-    return json.dumps({
+    return jsonify({
         'title': prod['title'],
         'price': prod['price'],
         'image': prod['image'],
         'styleType': prod['styleType'],
-        'gender': prod['gender']
-        })
+        'gender': prod['gender'],
+        'stock': prod['stock'],
+        'discount': prod['discount'],
+        'category': prod['category'],
+    })
 
 
 @app.route("/api/product/styletype")
