@@ -157,6 +157,8 @@ def login():
 
 #     return json.dumps(id)
 
+
+
 #USER READ
 # @app.get("/api/users")
 # def get_users():
@@ -234,15 +236,11 @@ def update_User(id):
 
 
 
-
 #admin page
 # @app.get("/api/admin")
 # def  get_add():
 
 #     return
-
-
-
 
 
 
@@ -283,7 +281,7 @@ def get_catalog():
         prod["_id"] = str(prod["_id"])
         all_products.append(prod)
 
-    return json.dumps(all_products)
+    return jsonify(all_products)
 
 
 @app.route("/api/catalog/cheapest")
@@ -317,37 +315,50 @@ def get_total():
 def save_product():
     cursor = db.product
 
-    id = cursor.insert_one({'_id': ObjectId(id)}, {'$set': {
-    'title': cursor['title'],
-    'price': cursor['price'],
-    'image': cursor['image'],
-    'styleType': cursor['styleType'],
-    'gender': cursor['gender']
-    }})
+    id = cursor.insert_one({
+        'title': request.json['title'],
+        'price': request.json['price'],
+        'image': request.json['image'],
+        'styleType': request.json['styleType'],
+        'gender': request.json['gender'],
+        'stock': request.json['stock'],
+        'discount': request.json['discount'],
+        'category': request.json['category'],
 
-    if not "title" in cursor or len(cursor["title"]) < 5:
-        return abort(400, "Title should contains at least 5 chars.")
+    })
+    return jsonify(str(id.inserted_id))
 
-    if not "price" in cursor:
-        return abort(400, "Price is required.")
+    # id = cursor.insert_one({'_id': ObjectId(id)}, {'$set': {
+    # 'title': cursor['title'],
+    # 'price': cursor['price'],
+    # 'image': cursor['image'],
+    # 'styleType': cursor['styleType'],
+    # 'gender': cursor['gender']
+    # }})
 
-    if not type(cursor["price"]) != float and type(cursor["price"]) != int:
-        return abort(400, "Must be a valid number.")
+    # if not "title" in cursor or len(cursor["title"]) < 5:
+    #     return abort(400, "Title should contains at least 5 chars.")
 
-    if cursor["price"] <= 0:
-        return abort(400, "Must be higher than 0.")
+    # if not "price" in cursor:
+    #     return abort(400, "Price is required.")
 
-    if not "image" in cursor or len(cursor["image"]) < 1:
-        return abort(400, "Image is required.")
+    # if not type(cursor["price"]) != float and type(cursor["price"]) != int:
+    #     return abort(400, "Must be a valid number.")
 
-    if not "styleType" in cursor or len(cursor["styleType"]) < 1:
-        return abort(400, "Style Type is required.")
+    # if cursor["price"] <= 0:
+    #     return abort(400, "Must be higher than 0.")
 
-    if not "gender" in cursor or len(cursor["gender"]) < 1:
-        return abort(400, "Gender is required.")
+    # if not "image" in cursor or len(cursor["image"]) < 1:
+    #     return abort(400, "Image is required.")
+
+    # if not "styleType" in cursor or len(cursor["styleType"]) < 1:
+    #     return abort(400, "Style Type is required.")
+
+    # if not "gender" in cursor or len(cursor["gender"]) < 1:
+    #     return abort(400, "Gender is required.")
 
 
-    return json.dumps(id)
+    # return json.dumps(id)
 
 #Product Read
 @app.route("/api/products/<id>")
