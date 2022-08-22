@@ -1,51 +1,57 @@
-
+import os
 from unittest import result
 from bson import ObjectId
 from itertools import product
-from flask import Flask, render_template, request, abort, session, jsonify
+from flask import Flask, render_template, request, abort, session, flash, request, redirect, url_for, send_from_directory
+from werkzeug.utils import secure_filename
 import json
 
 from config import db
 from flask_cors import CORS
 
-
+UPLOAD_FOLDER = 'public/img'
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 app = Flask('server')
 CORS(app) #disable CORS
+app.config['SECRET_KEY'] = 'clothingstore' 
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-@app.get('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
     if 'username' in session:
         return 'You are logged in as' + session['username']
     return render_template('ClothingRoutes.jsx')    
-
-
-@app.get('/api/user/<id>')
-def get_user(id):
-    user = []
-
-    user = db.user.find_one({'_id': ObjectId(id)})
-
-    # for user in cursor:
-    #     users.append({
-    #         '_id': str(ObjectId(user['_id'])),
-    #         'name': user['name'],
-    #         'email': user['email'],
-    #         'password': user['password'],
-    #         'country': user['country'],
-    #         'city': user['city'],
-    #         'zip': user['zip']
-    #     })
-    # print(".... ",users)
-
-    return json.dumps({
-        'name': user['name'],
-        'email': user['email'],
-        'password': user['password'],
-        'country': user['country'],
-        'city': user['city'],
-        'zip': user['zip']
-    })
+ #photo handling
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+           
+def upload_file():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        # if user does not select file, browser also
+        # submit an empty part without filename
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return redirect(url_for('uploaded_file',
+                                    filename=filename))
+    return json.dumps({"msg":"Photo uploaded!!"})
+    
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'],
+                               filename)
+        
 @app.post('/api/login')
 def login():
     credentials = request.get_json()
@@ -81,7 +87,7 @@ def login():
             break
 
     if response is not False:
-        return jsonify(user_founded), 200
+        return json.dumps(user_founded), 200
     else:
         return "User not found"
 
@@ -217,7 +223,7 @@ def  get_add():
 def deleteUser(id):
     db.user.delete_one({'_id': ObjectId(id)})
     print(id)
-    return jsonify({'msg': 'User deleted'})
+    return json.dumps({'msg': 'User deleted'})
 
 @app.route('/api/user/<id>', methods=['PUT'])
 #USER UPDATE
@@ -240,44 +246,9 @@ def updateUser(id):
     return json.dumps({'msg': 'UserUpdated'})
 
 
-@app.get("/api/catalog")
-def get_catalog():
-    cursor = db.product.find({}) #get all
-    all_products = []
-
-    for prod in cursor:
-        prod["_id"] = str(prod["_id"])
-        all_products.append(prod)
-
-    return json.dumps(all_products)  
-    
-
-@app.route("/api/catalog/cheapest")
-def get_cheapest():
-    print("cheapest product")
-
-    db_prod= db.product.find({})
-    solution= db_prod[0]
-    for prod in db_prod:
-        if prod["price"] < solution["price"]:
-            solution = prod
 
 
-    solution["_id"] = str(solution["_id"])
-    return json.dumps(solution)
-
-@app.route("/api/catalog/total")
-def get_total():
-    print("total")
-
-    db_prod= db.product.find({})
-    total = 0
-    for prod in db_prod:
-        total += prod["price"]
-
-    return json.dumps(total)
-
-#Product Section
+#Catalog Section
 #Product Create
 @app.post("/api/catalog")
 def save_product():
@@ -316,7 +287,18 @@ def save_product():
     return json.dumps(id) 
 
 #Product Read
-@app.route("/api/products/<id>")
+@app.get("/api/catalog")
+def get_catalog():
+    cursor = db.product.find({}) #get all
+    all_products = []
+
+    for prod in cursor:
+        prod["_id"] = str(prod["_id"])
+        all_products.append(prod)
+
+    return json.dumps(all_products)  
+@app.route("/api/catalog/<id>")
+
 def find_product(id):
     prod = db.product.find_one({"_id": ObjectId(id)})
 
@@ -336,7 +318,7 @@ def find_product(id):
         })
 
 
-@app.route("/api/product/styletype")
+@app.route("/api/catalog/styletype")
 def get_catagories():
     cursor= db.product.find({})
     catagories = []
@@ -350,7 +332,7 @@ def get_catagories():
     catagories["_id"] = str(catagories["_id"])
     return json.dumps(catagories)
 
-@app.route("/api/product/styletype/<cat_name>")
+@app.route("/api/catalog/styletype/<cat_name>")
 
 def get_title(cat_name):
     cursor= db.product.find({"styleType": cat_name})
@@ -403,13 +385,40 @@ def update_product(id):
     return json.dumps({'msg': 'UserUpdated'})
 
 #Delete Product
-@app.route('/api/product/<id>', methods=['DELETE'])
+@app.route('/api/catalog/<id>', methods=['DELETE'])
 def delete_product(id):
     db.product.delete_one({'_id': ObjectId(id)})
     print(id)
     
     return json.dumps({'msg': 'User deleted'})
 
+
+    
+
+@app.route("/api/catalog/cheapest")
+def get_cheapest():
+    print("cheapest product")
+
+    db_prod= db.product.find({})
+    solution= db_prod[0]
+    for prod in db_prod:
+        if prod["price"] < solution["price"]:
+            solution = prod
+
+
+    solution["_id"] = str(solution["_id"])
+    return json.dumps(solution)
+
+@app.route("/api/catalog/total")
+def get_total():
+    print("total")
+
+    db_prod= db.product.find({})
+    total = 0
+    for prod in db_prod:
+        total += prod["price"]
+
+    return json.dumps(total)
 
 #Coupon Code Section
 
@@ -428,20 +437,20 @@ def get_coupon():
 
 #Valid Coupon codes
 @app.get("/api/couponCode/<id>")
-def get_user_by_id(id):
-    print(f'id code is {id}')
+def get_coupon_by_id(id):
+    print(F'id code is {id}')
 
     coupon = db.couponCode.find_one({"_id": ObjectId(id)})
     print(f'coupon: {coupon}')
 
-    # if not coupon:
-    #     return abort(400, "Invalid coupon code")
+    if not coupon:
+         return abort(400, "Invalid coupon code")
 
     return json.dumps({
         'code': coupon['code'],
         'discount': coupon['discount']
     })
-
+ 
 #Post Coupon Code
 @app.post("/api/couponCode")
 def save_coupon():
