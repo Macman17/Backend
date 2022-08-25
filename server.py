@@ -1,4 +1,4 @@
-
+import os
 from unittest import result
 from bson import ObjectId
 from itertools import product
@@ -10,85 +10,56 @@ from os import getcwd, path, remove
 from responses.response_json import response_json
 
 from routes.files import routes_files
+from flask import Flask, render_template, request, abort, session, flash, request, redirect, url_for, send_from_directory
+from werkzeug.utils import secure_filename
 import json
 
 from config import db
 from flask_cors import CORS
 
 PATH_FILE = getcwd() + "/static/"
+UPLOAD_FOLDER = 'public/img'
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 app = Flask('server')
 CORS(app) #disable CORS
+app.config['SECRET_KEY'] = 'clothingstore'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-#admin page
-@app.get("/api/admin")
-def  get_add():
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if 'username' in session:
+        return 'You are logged in as' + session['username']
+    return render_template('ClothingRoutes.jsx')
+ #photo handling
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-    return
-#USER INFO CRUD
-# USER Create
-@app.post("/api/user")
-def create_user():
-    cursor = db.user
-    id = cursor.insert_one({
-        'name': request.json['name'],
-        'email': request.json['email'],
-        'password': request.json['password'],
-        'country': request.json['country'],
-        'city': request.json['city'],
-        'zip': request.json['zip']
-    })
-    return jsonify(str(id.inserted_id))
+def upload_file():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        # if user does not select file, browser also
+        # submit an empty part without filename
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return redirect(url_for('uploaded_file',
+                                    filename=filename))
+    return json.dumps({"msg":"Photo uploaded!!"})
 
-#USER READ
-@app.get("/api/users")
-def get_users():
-    users = []
-
-    cursor = db.user.find({})
-
-    for user in cursor:
-        users.append({
-            '_id': str(ObjectId(user['_id'])),
-            'name': user['name'],
-            'email': user['email'],
-            'password': user['password'],
-            'country': user['country'],
-            'city': user['city'],
-            'zip': user['zip']
-        })
-
-    # return users
-    # return json.dumps(users)
-    return jsonify(users)
-
-
-@app.get('/api/user/<id>')
-def get_user(id):
-    user = []
-
-    user = db.user.find_one({'_id': ObjectId(id)})
-
-    # for user in cursor:
-    #     users.append({
-    #         '_id': str(ObjectId(user['_id'])),
-    #         'name': user['name'],
-    #         'email': user['email'],
-    #         'password': user['password'],
-    #         'country': user['country'],
-    #         'city': user['city'],
-    #         'zip': user['zip']
-    #     })
-    # print(".... ",users)
-
-    return json.dumps({
-        'name': user['name'],
-        'email': user['email'],
-        'password': user['password'],
-        'country': user['country'],
-        'city': user['city'],
-        'zip': user['zip']
-    })
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'],
+                               filename)
 
 @app.post('/api/login')
 def login():
@@ -125,36 +96,36 @@ def login():
             break
 
     if response is not False:
-        return jsonify(user_founded), 200
+        return json.dumps(user_founded), 200
     else:
         return "User not found"
 
 
 #USER INFO CRUD
 # USER Create
-# @app.post("/api/user")
-# def create_user():
-#     product = request.get_json()
+@app.post("/api/user")
+def create_user():
+    product = request.get_json()
 
-#     db.user.insert_one(product)
+    db.user.insert_one(product)
 
-#     if not "name" in product or len(product["name"]) < 2:
-#         return abort(400, "You must enter your name!")
+    if not "name" in product or len(product["name"]) < 2:
+        return abort(400, "You must enter your name!")
 
-#     if not "email" in product:
-#         return abort(400, "Email address is required.")
+    if not "email" in product:
+         return abort(400, "Email address is required.")
 
-#     if not "zip" in product or len(product["zip"]) < 5:
-#         return abort(400, "Zip code requires at least 5 chars.")
+    if not "zip" in product or len(product["zip"]) < 5:
+         return abort(400, "Zip code requires at least 5 chars.")
 
-#     if not type(product["zip"]) != float and type(product["zip"]) != int:
-#         return abort(400, "Must be a valid number.")
+    if not type(product["zip"]) != float and type(product["zip"]) != int:
+        return abort(400, "Must be a valid number.")
 
-#     if product["zip"] == 0:
-#         return abort(400, "Must be higher than 0.")
+    if product["zip"] == 0:
+        return abort(400, "Must be higher than 0.")
 
-#     if not "country" in product or len(product["country"]) < 2:
-#         return abort(400, "Country is required.")
+    if not "country" in product or len(product["country"]) < 2:
+        return abort(400, "Country is required.")
 
 #     if not "city" in product or len(product["city"]) < 2:
 #         return abort(400, "City is required.")
@@ -211,7 +182,7 @@ def delete_User(id):
 def deleteUser(id):
     db.user.delete_one({'_id': ObjectId(id)})
     print(id)
-    return jsonify({'msg': 'User deleted'})
+    return json.dumps({'msg': 'User deleted'})
 
 @app.route('/api/user/<id>', methods=['PUT'])
 #USER UPDATE
@@ -233,42 +204,10 @@ def updateUser(id):
     return json.dumps({'msg': 'UserUpdated'})
 
 
-@app.get("/api/catalog")
-def get_catalog():
-    cursor = db.product.find({}) #get all
-    all_products = []
 
-    for prod in cursor:
-        prod["_id"] = str(prod["_id"])
-        all_products.append(prod)
 
     return jsonify(all_products)
 
-
-@app.route("/api/catalog/cheapest")
-def get_cheapest():
-    print("cheapest product")
-
-    db_prod= db.product.find({})
-    solution= db_prod[0]
-    for prod in db_prod:
-        if prod["price"] < solution["price"]:
-            solution = prod
-
-
-    solution["_id"] = str(solution["_id"])
-    return json.dumps(solution)
-
-@app.route("/api/catalog/total")
-def get_total():
-    print("total")
-
-    db_prod= db.product.find({})
-    total = 0
-    for prod in db_prod:
-        total += prod["price"]
-
-    return json.dumps(total)
 
 #Product Section
 #Product Create
@@ -336,7 +275,18 @@ def save_product():
     # return json.dumps(id)
 
 #Product Read
-@app.route("/api/products/<id>")
+@app.get("/api/catalog")
+def get_catalog():
+    cursor = db.product.find({}) #get all
+    all_products = []
+
+    for prod in cursor:
+        prod["_id"] = str(prod["_id"])
+        all_products.append(prod)
+
+    return json.dumps(all_products)
+@app.route("/api/catalog/<id>")
+
 def find_product(id):
     prod = db.product.find_one({"_id": ObjectId(id)})
 
@@ -357,7 +307,7 @@ def find_product(id):
     })
 
 
-@app.route("/api/product/styletype")
+@app.route("/api/catalog/styletype")
 def get_catagories():
     cursor= db.product.find({})
     catagories = []
@@ -371,7 +321,7 @@ def get_catagories():
     catagories["_id"] = str(catagories["_id"])
     return json.dumps(catagories)
 
-@app.route("/api/product/styletype/<cat_name>")
+@app.route("/api/catalog/styletype/<cat_name>")
 
 def get_title(cat_name):
     cursor= db.product.find({"styleType": cat_name})
@@ -430,13 +380,40 @@ def update_product(id):
     return json.dumps({'msg': 'UserUpdated'})
 
 #Delete Product
-@app.route('/api/product/<id>', methods=['DELETE'])
+@app.route('/api/catalog/<id>', methods=['DELETE'])
 def delete_product(id):
     db.product.delete_one({'_id': ObjectId(id)})
     print(id)
 
     return json.dumps({'msg': 'User deleted'})
 
+
+
+
+@app.route("/api/catalog/cheapest")
+def get_cheapest():
+    print("cheapest product")
+
+    db_prod= db.product.find({})
+    solution= db_prod[0]
+    for prod in db_prod:
+        if prod["price"] < solution["price"]:
+            solution = prod
+
+
+    solution["_id"] = str(solution["_id"])
+    return json.dumps(solution)
+
+@app.route("/api/catalog/total")
+def get_total():
+    print("total")
+
+    db_prod= db.product.find({})
+    total = 0
+    for prod in db_prod:
+        total += prod["price"]
+
+    return json.dumps(total)
 
 #Coupon Code Section
 
@@ -455,14 +432,14 @@ def get_coupon():
 
 #Valid Coupon codes
 @app.get("/api/couponCode/<id>")
-def get_user_by_id(id):
-    print(f'id code is {id}')
+def get_coupon_by_id(id):
+    print(F'id code is {id}')
 
     coupon = db.couponCode.find_one({"_id": ObjectId(id)})
     print(f'coupon: {coupon}')
 
-    # if not coupon:
-    #     return abort(400, "Invalid coupon code")
+    if not coupon:
+         return abort(400, "Invalid coupon code")
 
     return json.dumps({
         'code': coupon['code'],
