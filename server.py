@@ -2,15 +2,11 @@ import os
 from unittest import result
 from bson import ObjectId
 from itertools import product
-from flask import Flask, redirect, flash, render_template, request, abort, session, jsonify, send_from_directory, Response
+from flask import Flask, redirect, flash, render_template, request, abort, session, jsonify, send_from_directory, url_for
 
 from os import getcwd, path, remove
 # from sys import path
 
-from responses.response_json import response_json
-
-from routes.files import routes_files
-from flask import Flask, render_template, request, abort, session, flash, request, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 import json
 
@@ -141,24 +137,51 @@ def create_user():
 
 
 #USER READ
-# @app.get("/api/users")
-# def get_users():
-#     users = []
+@app.get("/api/users")
+def get_users():
+    users = []
 
-#     cursor = db.user.find({})
+    cursor = db.user.find({})
 
-#     for user in cursor:
-#         users.append({
-#             '_id': str(ObjectId(user['_id'])),
-#             'name': user['name'],
-#             'email': user['email'],
-#             'password': user['password'],
-#             'country': user['country'],
-#             'city': user['city'],
-#             'zip': user['zip']
-#         })
+    for user in cursor:
+        users.append({
+            '_id': str(ObjectId(user['_id'])),
+            'name': user['name'],
+            'email': user['email'],
+            'password': user['password'],
+            'country': user['country'],
+            'city': user['city'],
+            'zip': user['zip']
+        })
 
-#     return json.dumps(users)
+    return jsonify(users)
+
+@app.get('/api/user/<id>')
+def get_user(id):
+    user = []
+
+    user = db.user.find_one({'_id': ObjectId(id)})
+
+    # for user in cursor:
+    #     users.append({
+    #         '_id': str(ObjectId(user['_id'])),
+    #         'name': user['name'],
+    #         'email': user['email'],
+    #         'password': user['password'],
+    #         'country': user['country'],
+    #         'city': user['city'],
+    #         'zip': user['zip']
+    #     })
+    # print(".... ",users)
+
+    return json.dumps({
+        'name': user['name'],
+        'email': user['email'],
+        'password': user['password'],
+        'country': user['country'],
+        'city': user['city'],
+        'zip': user['zip']
+    })
 
 
 
@@ -174,8 +197,6 @@ def delete_User(id):
 # def  get_add():
 
 #     return
-
-
 
 #USER DELETE
 @app.route('/api/user/<id>', methods=['DELETE'])
@@ -285,6 +306,7 @@ def get_catalog():
         all_products.append(prod)
 
     return json.dumps(all_products)
+
 @app.route("/api/catalog/<id>")
 
 def find_product(id):
