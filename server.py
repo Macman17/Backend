@@ -2,11 +2,20 @@
 from unittest import result
 from bson import ObjectId
 from itertools import product
-from flask import Flask, render_template, request, abort, session, jsonify
+from flask import Flask, redirect, flash, render_template, request, abort, session, jsonify, send_from_directory, Response
+
+from os import getcwd, path, remove
+# from sys import path
+
+from responses.response_json import response_json
+
+from routes.files import routes_files
 import json
 
 from config import db
 from flask_cors import CORS
+
+PATH_FILE = getcwd() + "/static/"
 
 app = Flask('server')
 CORS(app) #disable CORS
@@ -263,22 +272,36 @@ def get_total():
 
 #Product Section
 #Product Create
+
 @app.post("/api/catalog")
 def save_product():
-    cursor = db.product
+    if request.method == 'POST':
+    # target=os.path.join(UPLOAD_FOLDER,'test_docs')
+    # if not os.path.isdir(target):
+    #     os.mkdir(target)
+    # logger.info("welcome to upload`")
+    # file = request.files['file']
+    # filename = secure_filename(file.filename)
+    # destination="/".join([target, filename])
+    # file.save(destination)
+    # session['uploadFilePath']=destination
+    # response="Whatever you wish too return"
+    # return response
 
-    id = cursor.insert_one({
-        'title': request.json['title'],
-        'price': request.json['price'],
-        'image': request.json['image'],
-        'styleType': request.json['styleType'],
-        'gender': request.json['gender'],
-        'stock': request.json['stock'],
-        'discount': request.json['discount'],
-        'category': request.json['category'],
 
-    })
-    return jsonify(str(id.inserted_id))
+        cursor = db.product
+
+        id = cursor.insert_one({
+            'title': request.json['title'],
+            'price': request.json['price'],
+            'image': request.json['image'],
+            'styleType': request.json['styleType'],
+            'gender': request.json['gender'],
+            'stock': request.json['stock'],
+            'discount': request.json['discount'],
+            'category': request.json['category'],
+        })
+        return jsonify(str(id.inserted_id))
 
     # id = cursor.insert_one({'_id': ObjectId(id)}, {'$set': {
     # 'title': cursor['title'],
@@ -486,6 +509,47 @@ def delete_coupon(id):
     db.couponCode.delete_one({'_id': ObjectId(id)})
     print(id)
     return json.dumps({'msg': 'Coupon deleted'})
+
+# ************ MANAGE FILES ************
+@app.post("/api/file/upload")
+def upload_file():
+    try:
+        file = request.files['file']
+        file.save(PATH_FILE + file.filename)
+        response = jsonify({"message": "Success"})
+        return response
+    except FileNotFoundError:
+        response = jsonify({"Folder not found": 404})
+        return response
+
+
+@app.get("/api/file/<string:file_name>")
+def get_file(file_name):
+    return send_from_directory(PATH_FILE, path=file_name, as_attachment=False)
+
+
+@app.get("/api/file/download/<string:file_name>")
+def download_file(file_name):
+    return send_from_directory(PATH_FILE, path=file_name, as_attachment=True)
+
+
+@app.delete("/api/file/delete")
+def delete_file():
+    filename = request.form['filename']
+    print(f"filename... {filename}")
+
+    if path.isfile(PATH_FILE + filename) == False:
+        response = jsonify({"message": "file does not exist"})
+        return response
+    else:
+        try:
+            remove(PATH_FILE + filename)
+            response = jsonify({"message": "File deleted"})
+            return response
+        except OSError:
+            response = jsonify({"message": 404})
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
