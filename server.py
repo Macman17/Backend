@@ -123,16 +123,16 @@ def create_user():
     if not "country" in product or len(product["country"]) < 2:
         return abort(400, "Country is required.")
 
-#     if not "city" in product or len(product["city"]) < 2:
-#         return abort(400, "City is required.")
+    if not "city" in product or len(product["city"]) < 2:
+         return abort(400, "City is required.")
 
-#     if not "password" in product or len(product["password"]) < 4:
-#         return abort(400, "Password is required.")
+    if not "password" in product or len(product["password"]) < 4:
+        return abort(400, "Password is required.")
 
-#     if not type(product["password"]) not in [type(float),type(int)]:
-#         return abort(400, "You must have at least 1 number in password.")
+    if not type(product["password"]) not in [type(float),type(int)]:
+     return abort(400, "You must have at least 1 number in password.")
 
-#     return json.dumps(id)
+    return json.dumps(id)
 
 
 
@@ -162,17 +162,7 @@ def get_user(id):
 
     user = db.user.find_one({'_id': ObjectId(id)})
 
-    # for user in cursor:
-    #     users.append({
-    #         '_id': str(ObjectId(user['_id'])),
-    #         'name': user['name'],
-    #         'email': user['email'],
-    #         'password': user['password'],
-    #         'country': user['country'],
-    #         'city': user['city'],
-    #         'zip': user['zip']
-    #     })
-    # print(".... ",users)
+
 
     return json.dumps({
         'name': user['name'],
@@ -192,11 +182,6 @@ def delete_User(id):
     print(id)
     return json.dumps({'msg': 'User deleted'})
 
-#admin page
-# @app.get("/api/admin")
-# def  get_add():
-
-#     return
 
 #USER DELETE
 @app.route('/api/user/<id>', methods=['DELETE'])
@@ -263,37 +248,35 @@ def save_product():
         })
         return jsonify(str(id.inserted_id))
 
-    # id = cursor.insert_one({'_id': ObjectId(id)}, {'$set': {
-    # 'title': cursor['title'],
-    # 'price': cursor['price'],
-    # 'image': cursor['image'],
-    # 'styleType': cursor['styleType'],
-    # 'gender': cursor['gender']
-    # }})
+   
+    if not "title" in cursor or len(cursor["title"]) < 5:
+        return abort(400, "Title should contains at least 5 chars.")
 
-    # if not "title" in cursor or len(cursor["title"]) < 5:
-    #     return abort(400, "Title should contains at least 5 chars.")
+    if not "price" in cursor:
+        return abort(400, "Price is required.")
 
-    # if not "price" in cursor:
-    #     return abort(400, "Price is required.")
+    if not type(cursor["price"]) != float and type(cursor["price"]) != int:
+        return abort(400, "Must be a valid number.")
 
-    # if not type(cursor["price"]) != float and type(cursor["price"]) != int:
-    #     return abort(400, "Must be a valid number.")
+    if cursor["price"] <= 0:
+        return abort(400, "Must be higher than 0.")
 
-    # if cursor["price"] <= 0:
-    #     return abort(400, "Must be higher than 0.")
+    if not "image" in cursor or len(cursor["image"]) < 1:
+        return abort(400, "Image is required.")
 
-    # if not "image" in cursor or len(cursor["image"]) < 1:
-    #     return abort(400, "Image is required.")
+    if not "styleType" in cursor or len(cursor["styleType"]) < 1:
+        return abort(400, "Style Type is required.")
 
-    # if not "styleType" in cursor or len(cursor["styleType"]) < 1:
-    #     return abort(400, "Style Type is required.")
+    if not "stock" in cursor:
+        return abort(400, "stock is required.")
+    
+    if not "gender" in cursor:
+        return abort(400, "Gender is required.")
 
-    # if not "gender" in cursor or len(cursor["gender"]) < 1:
-    #     return abort(400, "Gender is required.")
-
-
-    # return json.dumps(id)
+    if not "category" in cursor:
+        return abort(400, "Category is required.")
+    
+    return json.dumps(id)
 
 #Product Read
 @app.get("/api/catalog")
@@ -376,26 +359,33 @@ def update_product(id):
     return json.dumps({'msg': 'ProductUpdated'})
 
 
-    # if not "title" in cursor or len(cursor["title"]) < 5:
-    #     return abort(400, "Title should contains at least 5 chars.")
+    if not "title" in cursor or len(cursor["title"]) < 5:
+        return abort(400, "Title should contains at least 5 chars.")
 
-    # if not "price" in cursor:
-    #     return abort(400, "Price is required.")
+    if not "price" in cursor:
+        return abort(400, "Price is required.")
 
-    # if not type(cursor["price"]) != float and type(cursor["price"]) != int:
-    #     return abort(400, "Must be a valid number.")
+    if not type(cursor["price"]) != float and type(cursor["price"]) != int:
+        return abort(400, "Must be a valid number.")
 
-    # if cursor["price"] <= 0:
-    #     return abort(400, "Must be higher than 0.")
+    if cursor["price"] <= 0:
+        return abort(400, "Must be higher than 0.")
 
-    # if not "image" in cursor or len(cursor["image"]) < 1:
-    #     return abort(400, "Image is required.")
+    if not "image" in cursor or len(cursor["image"]) < 1:
+        return abort(400, "Image is required.")
 
-    # if not "styleType" in cursor or len(cursor["styleType"]) < 1:
-    #     return abort(400, "Style Type is required.")
+    if not "styleType" in cursor or len(cursor["styleType"]) < 1:
+        return abort(400, "Style Type is required.")
 
-    # if not "gender" in cursor or len(cursor["gender"]) < 1:
-    #     return abort(400, "Gender is required.")
+    if not "stock" in cursor:
+        return abort(400, "stock is required.")
+    
+    if not "gender" in cursor:
+        return abort(400, "Gender is required.")
+
+    if not "category" in cursor:
+        return abort(400, "Category is required.")
+    
 
 
 
