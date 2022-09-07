@@ -206,13 +206,37 @@ def updateUser(id):
     'city': request.json['city'],
     'zip': request.json['zip']
     }})
+    
+    if not "name" in product or len(product["name"]) < 2:
+        return abort(400, "You must enter your name!")
+
+    if not "email" in product:
+         return abort(400, "Email address is required.")
+
+    if not "zip" in product or len(product["zip"]) < 5:
+         return abort(400, "Zip code requires at least 5 chars.")
+
+    if not type(product["zip"]) != float and type(product["zip"]) != int:
+        return abort(400, "Must be a valid number.")
+
+    if product["zip"] == 0:
+        return abort(400, "Must be higher than 0.")
+
+    if not "country" in product:
+        return abort(400, "Country is required.")
+
+    if not "city" in product:
+         return abort(400, "City is required.")
+
+    if not "password" in product or len(product["password"]) < 4:
+        return abort(400, "Password is required.")
+
+    if not type(product["password"]) not in [type(float),type(int)]:
+     return abort(400, "You must have at least 1 number in password.")
 
     return json.dumps({'msg': 'UserUpdated'})
 
 
-
-
-    return jsonify(all_products)
 
 
 #Product Section
@@ -485,12 +509,24 @@ def save_coupon():
 def update_coupon(id):
     print(id)
     print(request.json)
-    cursor = db.couponCode
+    coupon = db.couponCode
 
-    cursor.update_one({'_id': ObjectId(id)}, {'$set': {
-    'code': cursor['code'],
-    'discount': cursor['discount']
+    coupon.update_one({'_id': ObjectId(id)}, {'$set': {
+    'code': coupon['code'],
+    'discount': coupon['discount']
     }})
+    
+    if not "code" in coupon or len(coupon["code"]) < 5:
+        return abort(400, "Code is required and should contains at least 5 chars.")
+
+    if not "discount" in coupon:
+        return abort(400, "Discount is required.")
+
+    if type(coupon["discount"]) != int and type(coupon["discount"]) != float:
+        return abort(400, "Discount is required and should a valid number.")
+
+    if coupon["discount"] < 0 or coupon["discount"] > 31:
+        return abort(400, "Discount should be lower than 31.")
 
 #Delete Coupon
 @app.route('/api/couponCode/<id>', methods=['DELETE'])
